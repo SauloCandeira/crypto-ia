@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exibir Dados do XRP/USD</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #092554;
+            color: white;
+            width: 100%;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 24px;
+        }
+        h1 {
+            margin: 20px 0;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column; /* Alterado para coluna */
+            align-items: center; /* Centraliza os gráficos */
+            max-width: 800px; /* Limita a largura do contêiner */
+            width: 100%;
+            margin: 20px 0;
+        }
+        canvas {
+            width: 100%; /* Largura do gráfico (100% do contêiner) */
+            height: 400px; /* Altura do gráfico de preço */
+            margin-bottom: 10px; /* Espaço entre os gráficos */
+        }
+        #volumeChart {
+            height: 200px; /* Altura reduzida do gráfico de volume */
+        }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        footer {
+            background-color: #092554;
+            color: white;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            position: relative;
+            bottom: 0;
+            margin-top: auto; /* Empurra o footer para baixo */
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <header>
+        Dados de Criptomoeda
+    </header>
+
+    <h1>Dados do XRP/USD</h1>
+    <div class="input-container">
+        <input type="file" id="fileInput" accept=".json">
+        <button id="loadButton">Carregar Dados</button>
+        <label for="limitInput">Limitar a:</label>
+        <select id="limitInput">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+        </select>
+    </div>
+
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Open</th>
+                <th>High</th>
+                <th>Low</th>
+                <th>Close</th>
+                <th>Volume</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Os dados serão inseridos aqui -->
+        </tbody>
+    </table>
+
+    <div class="chart-container">
+        <canvas id="priceChart"></canvas>
+        <canvas id="volumeChart"></canvas>
+    </div>
+
+    <footer>
+        © 2024 Análise de Dados Cripto
+    </footer>
+
+    <script>
+        document.getElementById('loadButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const data = JSON.parse(event.target.result);
+                    const limit = parseInt(document.getElementById('limitInput').value);
+                    displayData(data.slice(0, limit));
+                    generateCharts(data);
+                };
+
+                reader.onerror = function(event) {
+                    console.error("Erro ao ler o arquivo:", event);
+                };
+
+                reader.readAsText(file);
+            } else {
+                alert("Por favor, selecione um arquivo JSON.");
+            }
+        });
+
+        function displayData(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = ''; // Limpa a tabela antes de adicionar novos dados
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.Date}</td>
+                    <td>${row.Open}</td>
+                    <td>${row.High}</td>
+                    <td>${row.Low}</td>
+                    <td>${row.Close}</td>
+                    <td>${row.Volume}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function generateCharts(data) {
+            const labels = data.map(row => row.Date);
+            const openPrices = data.map(row => row.Open);
+            const closePrices = data.map(row => row.Close);
+            const volumes = data.map(row => row.Volume);
+
+            // Gráfico de Preço
+            const ctxPrice = document.getElementById('priceChart').getContext('2d');
+            new Chart(ctxPrice, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Preço de Fechamento',
+                            data: closePrices,
+                            borderColor: 'rgba(75, 192, 192, 1)', // Verde
+                            backgroundColor: 'rgba(75, 192, 192, 0)',
+                            fill: false,
+                        },
+                        {
+                            label: 'Preço de Abertura',
+                            data: openPrices,
+                            borderColor: 'rgba(54, 162, 235, 1)', // Azul
+                            backgroundColor: 'rgba(54, 162, 235, 0)',
+                            fill: false,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                        },
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Preço (USD)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Volume
+            const ctxVolume = document.getElementById('volumeChart').getContext('2d');
+            new Chart(ctxVolume, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Volume',
+                            data: volumes,
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)', // Vermelho
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                        },
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volume'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
